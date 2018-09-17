@@ -37,7 +37,7 @@
 #define CONFIG_LINE_BUFFER 1024
 #define TRACE_BUFFER_SIZE 0x1000
 #define SKBADDR_BUFFER_SIZE 256
-#define TRACE_CLOCK "mono_raw"
+#define TRACE_CLOCK "global"
 
 static volatile int running = 1;
 
@@ -197,12 +197,16 @@ int main(int argc, char *argv[])
   struct timeval finish_send_time;
   long long unsigned int send_sum = 0;
   unsigned int send_num = 0;
+  int expect_send = 0;
+  int send_num_func = 0;
 
   char recv_skbaddr[SKBADDR_BUFFER_SIZE];
   struct timeval start_recv_time;
   struct timeval finish_recv_time;
   long long unsigned int recv_sum = 0;
   unsigned int recv_num = 0;
+  int expect_recv = 0;
+  int recv_num_func = 0;
 
   if (argc != 2) {
     usage();
@@ -235,26 +239,39 @@ int main(int argc, char *argv[])
   while (running) {
     // Read the next line from the trace pipe
     if (fgets(buf, TRACE_BUFFER_SIZE, tp) != NULL && running) {
+
       // If there's data, parse it
       trace_event_parse_str(buf, &evt);
+
+      // Count the reading of this event
+      recv_num_func++;
+      send_num_func++;
+
       // Handle events
+
       if (!strncmp(in_outer_func, evt.func_name, evt.func_name_len)
        && !strncmp(in_outer_dev, evt.dev, evt.dev_len)) {
         // Got a inbound event on outer dev
+
         memcpy(recv_skbaddr, evt.skbaddr, evt.skbaddr_len);
         recv_skbaddr[evt.skbaddr_len] = '\0';
         start_recv_time = evt.ts;
+        expect_recv = 1;
+        recv_num_func = 1;
       } else
       if (!strncmp(in_inner_func, evt.func_name, evt.func_name_len)
        && !strncmp(in_inner_dev, evt.dev, evt.dev_len)
-       && !strncmp(recv_skbaddr, evt.skbaddr, evt.skbaddr_len)) {
+       && !strncmp(recv_skbaddr, evt.skbaddr, evt.skbaddr_len)
+       && expect_recv) {
         // Got a inbound event on inner dev and the skbaddr matches
+
         finish_recv_time = evt.ts;
         tvsub(&finish_recv_time, &start_recv_time);
         if (finish_recv_time.tv_usec < 1000) {
-          fprintf(stdout, "recv latency: %lu.%06lu\n",
+          fprintf(stdout, "recv latency: %lu.%06lu, saw %d events\n",
                   finish_recv_time.tv_sec,
-                  finish_recv_time.tv_usec);
+                  finish_recv_time.tv_usec,
+                  recv_num_func);
           recv_sum += finish_recv_time.tv_sec * 1000000
                     + finish_recv_time.tv_usec;
           recv_num++;
@@ -263,25 +280,32 @@ int main(int argc, char *argv[])
                   finish_recv_time.tv_sec,
                   finish_recv_time.tv_usec);
         }
+        expect_recv = 0;
 
       } else
       if (!strncmp(out_inner_func, evt.func_name, evt.func_name_len)
        && !strncmp(out_inner_dev, evt.dev, evt.dev_len)) {
+
         // Got a outbound event on inner dev
         memcpy(send_skbaddr, evt.skbaddr, evt.skbaddr_len);
         send_skbaddr[evt.skbaddr_len] = '\0';
         start_send_time = evt.ts;
+        expect_send = 1;
+        send_num_func = 1;
       } else
       if (!strncmp(out_outer_func, evt.func_name, evt.func_name_len)
        && !strncmp(out_outer_dev, evt.dev, evt.dev_len)
-       && !strncmp(send_skbaddr, evt.skbaddr, evt.skbaddr_len)) {
+       && !strncmp(send_skbaddr, evt.skbaddr, evt.skbaddr_len)
+       && expect_send) {
         // Got a outbound event on outer dev and the skbaddr matches
+
         finish_send_time = evt.ts;
         tvsub(&finish_send_time, &start_send_time);
         if (finish_send_time.tv_usec < 1000) {
-          fprintf(stdout, "send latency: %lu.%06lu\n",
+          fprintf(stdout, "send latency: %lu.%06lu, saw %d events\n",
                   finish_send_time.tv_sec,
-                  finish_send_time.tv_usec);
+                  finish_send_time.tv_usec,
+                  send_num_func);
           send_sum += finish_send_time.tv_sec * 1000000
                     + finish_send_time.tv_usec;
           send_num++;
@@ -290,7 +314,7 @@ int main(int argc, char *argv[])
                   finish_send_time.tv_sec,
                   finish_send_time.tv_usec);
         }
-      
+        expect_send = 0;
       }
     }
   }
