@@ -41,8 +41,9 @@ void trace_event_print(struct trace_event *evt);
 
 // Get ftrace overhead by sending to and recv from loop back with and with out instrumentation
 // Returns the measured number of microseconds per trace function call
-float get_event_overhead(int nprobes,
-                         FILE **tp,
-                         const char *debug_fs_path);
+float get_event_overhead(const char *debug_fs_path,
+                         const char *events,
+                         const char *clock,
+                         int nprobes);
 
 #endif

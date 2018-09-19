@@ -208,13 +208,16 @@ int main(int argc, char *argv[])
   int expect_recv = 0;
   int recv_num_func = 0;
 
+  float ms_per_event = 0;
+  int num_ftrace_events = 0;
+
   if (argc != 2) {
     usage();
     return 1;
   }
 
+  // Parse config file and dump some details for reference
   parse_config_file(argv[1]);
-
   fprintf(stdout, "in_outer_dev:   %s\n", in_outer_dev);
   fprintf(stdout, "in_outer_func:  %s\n", in_outer_func);
   fprintf(stdout, "in_inner_dev:   %s\n", in_inner_dev);
@@ -224,11 +227,12 @@ int main(int argc, char *argv[])
   fprintf(stdout, "out_outer_dev:  %s\n", out_outer_dev);
   fprintf(stdout, "out_outer_func: %s\n", out_outer_func);
   fprintf(stdout, "events: %s\n", ftrace_set_events);
-
   fprintf(stdout, "trace_clock: %s\n", TRACE_CLOCK);
   
+  // Trap interupts
   signal(SIGINT, do_exit);
 
+  // Get the trace pipe
   tp = get_trace_pipe(TRACING_FS_PATH, ftrace_set_events, NULL, TRACE_CLOCK);
 
   if (!tp) {

@@ -62,8 +62,8 @@ cat_from(const char *file, char *data, size_t len)
 FILE *
 get_trace_pipe(const char *debug_fs_path,
                const char *target_events,
-	       const char *pid,
-	       const char *trace_clock)
+      	       const char *pid,
+      	       const char *trace_clock)
 {
   FILE *tp = NULL;
   if (chdir(debug_fs_path)) {
@@ -347,12 +347,15 @@ probe_loopback(int nprobes,
     
 
     // Calculate RTT and add to sum
-    tvsub(&recv_time, &send_time);
-    rtt_sum += recv_time.tv_sec * 1000000 + recv_time.tv_usec;
+    // The first ping is skipped as a 'cache warmer'
+    if (i) {
+      tvsub(&recv_time, &send_time);
+      rtt_sum += recv_time.tv_sec * 1000000 + recv_time.tv_usec;
 
 #ifdef DEBUG
-    fprintf(stderr, "RTT: %lu.%06lu sec\n", recv_time.tv_sec, recv_time.tv_usec);
+      fprintf(stderr, "RTT: %lu.%06lu sec\n", recv_time.tv_sec, recv_time.tv_usec);
 #endif
+    }
 
     // Take a break before doing it again
     sleep(1);
@@ -444,28 +447,24 @@ count_ftrace_events(void *arg_p)
 
 // Estimate ftrace overhead by probing loopback's RTT with and without ftrace events enabled
 // Returns the estimated number of microseconds per trace function call
+// All parameters except nprobes forwarded to get_trace_pipe()
 // Returns 0 on failure
 // Attempts to leave ftrace system in same state as when launched by
 // saving and restoring `set_event`
 #define SAVE_BUFFER 512
 float
-get_event_overhead(int nprobes, FILE **tp_p, const char *debug_fs_path)
+get_event_overhead(const char *debug_fs_path,
+                         const char *events,
+                         const char *clock,
+                         int nprobes)
 {
   long unsigned int untraced_mean_rtt;
   long unsigned int traced_mean_rtt;
-  char save_events[SAVE_BUFFER];
+
+  FILE *tp;
+
   pthread_t event_count_thread;
-
   struct count_ftrace_events_args count_thread_args;
-
-  // Save trace state
-  if (cat_from("set_event", &save_events, SAVE_BUFFER) == 0) {
-    fprintf(stderr, "Failed to save events\n");
-    return 0;
-  }
-
-  // Close trace pipe
-  release_trace_pipe(*tp_p, debug_fs_path);
 
   // Get untraced RTT
   probe_loopback(nprobes, &untraced_mean_rtt, NULL);
@@ -474,8 +473,8 @@ get_event_overhead(int nprobes, FILE **tp_p, const char *debug_fs_path)
   fprintf(stderr, "Got untraced rtt: %lu usec\n", untraced_mean_rtt);
 #endif
   
-  // Re-instate trace pipe
-  *tp_p = get_trace_pipe(debug_fs_path, save_events, NULL, NULL);
+  // Instate trace pipe
+  tp = get_trace_pipe(debug_fs_path, events, NULL, clock);
 
 #ifdef DEBUG
   fprintf(stderr, "Re-started tracing\n");
@@ -486,7 +485,7 @@ get_event_overhead(int nprobes, FILE **tp_p, const char *debug_fs_path)
   sleep(3);
 
   // Start counting events
-  count_thread_args.tp_p = tp_p;
+  count_thread_args.tp_p = &tp;
   count_thread_args.nprobes = nprobes;
   if (pthread_create(&event_count_thread, NULL, count_ftrace_events,
       (void *)&count_thread_args) != 0) {
@@ -507,16 +506,17 @@ get_event_overhead(int nprobes, FILE **tp_p, const char *debug_fs_path)
                   traced_mean_rtt);
 #endif
 
+  // Wait for counting thread to be done
   pthread_join(event_count_thread, NULL);
   fprintf(stderr, "Counting thread exited\n");
-/*
-  // Kill counting thread
-  pthread_cancel(event_count_thread);
-#ifdef DEBUG
-  fprintf(stderr, "Stopped counting thread\n");
-#endif
-*/
+
+  // Release trace pipe
+  release_trace_pipe(tp, debug_fs_path); 
 
   // Return difference in rtts divided by number of events captures
-  return (float)(traced_mean_rtt - untraced_mean_rtt) / mean_num_ftrace_events;
+  if (traced_mean_rtt > untraced_mean_rtt) {
+    return (float)(traced_mean_rtt - untraced_mean_rtt) / mean_num_ftrace_events;
+  } else {
+    return 0.0;
+  }
 }

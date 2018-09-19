@@ -7,18 +7,11 @@
 
 int main()
 {
-  FILE *tp;
   float oh;
 
-  tp = get_trace_pipe(TRACING_FS_PATH,
-                      "net:*",
-                      NULL,
-                      TRACE_CLOCK);
-  oh = get_event_overhead(10, &tp, TRACING_FS_PATH);
+  oh = get_event_overhead(TRACING_FS_PATH, "net:*", TRACE_CLOCK, 10);
 
   fprintf(stderr, "Got ftrace event overhead: %f usec\n", oh);
-
-  release_trace_pipe(tp, TRACING_FS_PATH); 
 
   return 0;
 }
