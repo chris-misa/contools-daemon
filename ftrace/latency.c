@@ -33,11 +33,15 @@
 #include "libftrace.h"
 #include "../time_common.h"
 
-#define TRACING_FS_PATH "/sys/kernel/debug/tracing"
 #define CONFIG_LINE_BUFFER 1024
 #define TRACE_BUFFER_SIZE 0x1000
 #define SKBADDR_BUFFER_SIZE 256
+
+#define TRACING_FS_PATH "/sys/kernel/debug/tracing"
 #define TRACE_CLOCK "global"
+
+// Number of probes used to get ftrace overhead
+#define OVERHEAD_NPROBES 10
 
 static volatile int running = 1;
 
@@ -208,8 +212,10 @@ int main(int argc, char *argv[])
   int expect_recv = 0;
   int recv_num_func = 0;
 
-  float ms_per_event = 0;
+  float usec_per_event = 0.0;
   int num_ftrace_events = 0;
+  float events_overhead = 0.0;
+  float adj_latency = 0.0;
 
   if (argc != 2) {
     usage();
@@ -232,14 +238,23 @@ int main(int argc, char *argv[])
   // Trap interupts
   signal(SIGINT, do_exit);
 
+  // Get ftrace event overhead
+  fprintf(stdout, "Getting ftrace event overhead. . .\n");
+  usec_per_event = get_event_overhead(TRACING_FS_PATH,
+                                      ftrace_set_events,
+                                      TRACE_CLOCK,
+                                      OVERHEAD_NPROBES);
+  fprintf(stdout, "Estimated usec per event: %f\n", usec_per_event);
+
   // Get the trace pipe
   tp = get_trace_pipe(TRACING_FS_PATH, ftrace_set_events, NULL, TRACE_CLOCK);
-
   if (!tp) {
     fprintf(stderr, "Failed to open trace pipe\n");
     return 1;
   }
 
+  // Main loop
+  fprintf(stdout, "Listening for events. . .\n");
   while (running) {
     // Read the next line from the trace pipe
     if (fgets(buf, TRACE_BUFFER_SIZE, tp) != NULL && running) {
@@ -272,10 +287,16 @@ int main(int argc, char *argv[])
         finish_recv_time = evt.ts;
         tvsub(&finish_recv_time, &start_recv_time);
         if (finish_recv_time.tv_usec < 1000) {
-          fprintf(stdout, "recv latency: %lu.%06lu, saw %d events\n",
+          events_overhead = (float)recv_num_func * usec_per_event;
+          adj_latency = (float)(finish_recv_time.tv_sec * 1000000
+                        + finish_recv_time.tv_usec)
+                        - events_overhead;
+          fprintf(stdout, "recv latency: %lu.%06lu, num_events: %d, events_overhead: %f, adj_latency: %f\n",
                   finish_recv_time.tv_sec,
                   finish_recv_time.tv_usec,
-                  recv_num_func);
+                  recv_num_func,
+                  events_overhead,
+                  adj_latency);
           recv_sum += finish_recv_time.tv_sec * 1000000
                     + finish_recv_time.tv_usec;
           recv_num++;
@@ -306,10 +327,16 @@ int main(int argc, char *argv[])
         finish_send_time = evt.ts;
         tvsub(&finish_send_time, &start_send_time);
         if (finish_send_time.tv_usec < 1000) {
-          fprintf(stdout, "send latency: %lu.%06lu, saw %d events\n",
+          events_overhead = (float)send_num_func * usec_per_event;
+          adj_latency = (float)(finish_send_time.tv_sec * 1000000
+                        + finish_send_time.tv_usec)
+                        - events_overhead;
+          fprintf(stdout, "send latency: %lu.%06lu, num_events: %d, events_overhead: %f, adj_latency: %f\n",
                   finish_send_time.tv_sec,
                   finish_send_time.tv_usec,
-                  send_num_func);
+                  send_num_func,
+                  events_overhead,
+                  adj_latency);
           send_sum += finish_send_time.tv_sec * 1000000
                     + finish_send_time.tv_usec;
           send_num++;

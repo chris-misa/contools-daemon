@@ -23,6 +23,7 @@
 #define PROBE_PORT 34128
 #define IOV_BUF_LEN 128
 #define TRACE_BUFFER_SIZE 512
+#define SAVE_BUFFER 512
 
 #define DEBUG
 
@@ -346,7 +347,7 @@ probe_loopback(int nprobes,
 #endif
     
 
-    // Calculate RTT and add to sum
+    // Calculate RTT in usec and add to sum
     // The first ping is skipped as a 'cache warmer'
     if (i) {
       tvsub(&recv_time, &send_time);
@@ -443,15 +444,14 @@ count_ftrace_events(void *arg_p)
   }
   mean_num_ftrace_events = (float)event_sum / (float)args->nprobes;
   fprintf(stderr, "Got mean events: %f\n", mean_num_ftrace_events);
+  pthread_exit(NULL);
 }
 
 // Estimate ftrace overhead by probing loopback's RTT with and without ftrace events enabled
 // Returns the estimated number of microseconds per trace function call
 // All parameters except nprobes forwarded to get_trace_pipe()
-// Returns 0 on failure
-// Attempts to leave ftrace system in same state as when launched by
-// saving and restoring `set_event`
-#define SAVE_BUFFER 512
+// Returns 0 on failure or if non-traced RTT is larger for whatever reason
+// Must be called with ftrace system off for result to have any meaning
 float
 get_event_overhead(const char *debug_fs_path,
                          const char *events,

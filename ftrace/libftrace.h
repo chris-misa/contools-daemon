@@ -39,8 +39,11 @@ void trace_event_parse_str(char *str, struct trace_event *evt);
 // Print the given event to stdout for debuging
 void trace_event_print(struct trace_event *evt);
 
-// Get ftrace overhead by sending to and recv from loop back with and with out instrumentation
-// Returns the measured number of microseconds per trace function call
+// Estimate ftrace overhead by probing loopback's RTT with and without ftrace events enabled
+// Returns the estimated number of microseconds per trace function call
+// All parameters except nprobes forwarded to get_trace_pipe()
+// Returns 0 on failure or if non-traced RTT is larger for whatever reason
+// Must be called with ftrace system off for result to have any meaning
 float get_event_overhead(const char *debug_fs_path,
                          const char *events,
                          const char *clock,
