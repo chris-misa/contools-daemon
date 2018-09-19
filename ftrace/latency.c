@@ -225,7 +225,7 @@ int main(int argc, char *argv[])
   fprintf(stdout, "out_outer_func: %s\n", out_outer_func);
   fprintf(stdout, "events: %s\n", ftrace_set_events);
 
-  fprintf(stdout, "trace_clock: %s", TRACE_CLOCK);
+  fprintf(stdout, "trace_clock: %s\n", TRACE_CLOCK);
   
   signal(SIGINT, do_exit);
 

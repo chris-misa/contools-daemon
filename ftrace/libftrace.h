@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 #ifndef LIBFTRACE_H
 #define LIBFTRACE_H
@@ -37,5 +38,11 @@ void trace_event_parse_str(char *str, struct trace_event *evt);
 
 // Print the given event to stdout for debuging
 void trace_event_print(struct trace_event *evt);
+
+// Get ftrace overhead by sending to and recv from loop back with and with out instrumentation
+// Returns the measured number of microseconds per trace function call
+float get_event_overhead(int nprobes,
+                         FILE **tp,
+                         const char *debug_fs_path);
 
 #endif
