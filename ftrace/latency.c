@@ -41,10 +41,15 @@
 #define TRACE_CLOCK "global"
 
 // Number of probes used to get ftrace overhead
-#define OVERHEAD_NPROBES 10
+#define OVERHEAD_NPROBES 5
 
 // Discard latencies above this threshold as outliers
 #define MAX_RAW_LATENCY 1000
+
+// Max file path for saving current directory
+#ifndef PATH_MAX
+#define PATH_MAX 512
+#endif
 
 static volatile int running = 1;
 
@@ -238,10 +243,28 @@ int main(int argc, char *argv[])
 
   int ping_on_wire = 0;
 
+  char synced_indicator[PATH_MAX];
+
+
   if (argc != 2) {
     usage();
     return 1;
   }
+
+  // Save working directory and push 'unsynced' to file for monitoring
+  if (getcwd(synced_indicator, PATH_MAX) == NULL) {
+    fprintf(stderr, "Failed to save current directory\n");
+    return 1;
+  }
+  // Break before we run out of buffer here
+  if (strlen(synced_indicator) + 15 > PATH_MAX) {
+    fprintf(stderr, "synced_indicator path would be too long\n");
+    return 1;
+  }
+  strcat(synced_indicator, "/ftrace_synced");
+  echo_to(synced_indicator, "0");
+
+
 
   // Parse config file and dump some details for reference
   parse_config_file(argv[1]);
@@ -266,6 +289,8 @@ int main(int argc, char *argv[])
                                       TRACE_CLOCK,
                                       OVERHEAD_NPROBES);
   fprintf(stdout, "Estimated usec per event: %f\n", usec_per_event);
+
+  echo_to(synced_indicator, "1");
 
   // Get the trace pipe
   tp = get_trace_pipe(TRACING_FS_PATH, ftrace_set_events, NULL, TRACE_CLOCK);

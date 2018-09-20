@@ -25,7 +25,7 @@
 #define TRACE_BUFFER_SIZE 512
 #define SAVE_BUFFER 512
 
-#define DEBUG
+// #define DEBUG
 
 // Simply write into the given file and close
 // Used for controlling ftrace via tracing filesystem
@@ -291,7 +291,7 @@ probe_loopback(int nprobes,
   if (debug_fs_path) {
     if (chdir(debug_fs_path)) {
       fprintf(stderr, "Failed to get into tracing file path.\n");
-      return NULL;
+      return -1;
     }
   }
 
@@ -366,7 +366,7 @@ probe_loopback(int nprobes,
   close(sockfd);
 
   // Calculate mean RTT
-  *mean_rtt = rtt_sum / nprobes;
+  *mean_rtt = rtt_sum / (nprobes - 1);
 
   // Return success
   return 0;
@@ -432,7 +432,9 @@ count_ftrace_events(void *arg_p)
         } else if (!strncmp(str_p, recv_mark, recv_mark_len)) {
           newProbe = atoi(str_p + recv_mark_len);
           if (curProbe != -1 && curProbe == newProbe) {
+#ifdef DEBUG
             fprintf(stderr, "Got %d events\n", event_counter);
+#endif
             event_sum += event_counter;
           }
           if (newProbe == args->nprobes - 1) {
@@ -443,7 +445,9 @@ count_ftrace_events(void *arg_p)
     }
   }
   mean_num_ftrace_events = (float)event_sum / (float)args->nprobes;
+#ifdef DEBUG
   fprintf(stderr, "Got mean events: %f\n", mean_num_ftrace_events);
+#endif
   pthread_exit(NULL);
 }
 

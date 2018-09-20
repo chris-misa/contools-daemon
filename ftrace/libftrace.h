@@ -9,6 +9,8 @@
 #ifndef LIBFTRACE_H
 #define LIBFTRACE_H
 
+int echo_to(const char *file, const char *data);
+
 // Get an open file pointer to the trace_pipe
 // and set things up in the tracing filesystem
 // If anything goes wrong, returns NULL

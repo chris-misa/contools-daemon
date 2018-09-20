@@ -15,21 +15,21 @@
 B="----------------"
 
 
-TARGET_IPV4="10.0.0.1"
+TARGET_IPV4="10.10.1.2"
 
 PING_ARGS="-D -i 1.0 -s 56"
 
-# NATIVE_PING_CMD="taskset 0x1 ${HOME}/contools-daemon/iputils/ping"
+NATIVE_PING_CMD="${HOME}/contools-daemon/iputils/ping"
 # NATIVE_PING_CMD="taskset 0x1 ${HOME}/Dep/iputils/ping"
-NATIVE_PING_CMD="${HOME}/Dep/iputils_notimestamp/ping"
+# NATIVE_PING_CMD="${HOME}/Dep/iputils_notimestamp/ping"
 CONTAINER_PING_CMD="/iputils/ping"
 
-PING_CONTAINER_IMAGE="chrismisa/contools:ping"
+PING_CONTAINER_IMAGE="ping-ubuntu"
 PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-PING_PAUSE_CMD="sleep 6000"
+PING_PAUSE_CMD="sleep 10"
 
 MONITOR_CMD="$(pwd)/latency $(pwd)/latency.conf"
 
@@ -108,6 +108,13 @@ echo "  monitor running with pid: ${MONITOR_PID}"
 
 $PAUSE_CMD
 
+while [ `cat ftrace_synced` != "1" ]
+do sleep 1
+done
+echo "  monitor synced"
+
+$PAUSE_CMD
+
 $NATIVE_PING_CMD $PING_ARGS $TARGET_IPV4 \
   > native_monitored_${TARGET_IPV4}.ping &
 echo "  native pinging. . ."
@@ -136,6 +143,13 @@ $MONITOR_CMD \
   > container_monitored_${TARGET_IPV4}.latency &
 MONITOR_PID=$!
 echo "  monitor running with pid: ${MONITOR_PID}"
+
+$PAUSE_CMD
+
+while [ `cat ftrace_synced` != "1" ]
+do sleep 1
+done
+echo "  monitor synced"
 
 $PAUSE_CMD
 
