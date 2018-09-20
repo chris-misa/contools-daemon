@@ -27,15 +27,16 @@ PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-PING_PAUSE_CMD="sleep 10"
+PING_PAUSE_CMD="sleep 500"
 
 MONITOR_CMD="$(pwd)/latency $(pwd)/latency.conf"
 
 DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
 
-declare -a IPERF_ARGS=("1M" "1G")
-#  "500K", "1M", "10M", "100M", "1G"
+#declare -a IPERF_ARGS=("1M" "3M" "10M" "32M" "100M" "316M" "1G" "3G" "10G")
+declare -a IPERF_ARGS=("1M" "10M" "100M" "1G" "10G")
+#declare -a IPERF_ARGS=("1M" "3M")
 
 mkdir $DATE_TAG
 cd $DATE_TAG
@@ -58,7 +59,7 @@ $PAUSE_CMD
 for arg in ${IPERF_ARGS[@]}
 do
   # Start iperf
-  iperf -c $TARGET_IPV4 -d -i 5 -b $arg -t 0 \
+  iperf -c $TARGET_IPV4 -d -i 100 -b $arg -t 0 \
     > ${arg}.iperf &
   IPERF_PID=$!
   #
