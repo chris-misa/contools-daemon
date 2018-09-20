@@ -5,16 +5,16 @@
 #
 
 # Copy in config files
-mkdir -p /etc/docker
-cp config/daemon.json /etc/docker/
-cp config/ndppd.conf /etc/
+# mkdir -p /etc/docker
+# cp config/daemon.json /etc/docker/
+# cp config/ndppd.conf /etc/
 
 # Get dependencies for the iputils build
 apt-get update
 apt-get install -y libcap-dev libidn2-0-dev nettle-dev
 
 # Get and build iputils
-git clone https://github.com/iputils/iputils.git
+git clone https://github.com/chris-misa/iputils.git
 pushd iputils
 make
 popd
@@ -35,5 +35,3 @@ add-apt-repository \
 
 apt-get update
 apt-get install -y docker-ce
-
-make
