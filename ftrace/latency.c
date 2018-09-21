@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
           // Discard received packet as outlier
           fprintf(stdout, "discarded recv: %lu\n",
                   finish_recv_time.tv_sec * 1000000 + finish_recv_time.tv_usec);
-	  ping_on_wire = 0;
+          ping_on_wire = 0;
         }
         expect_recv = 0;
 
