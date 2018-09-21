@@ -41,7 +41,7 @@
 #define TRACE_CLOCK "global"
 
 // Number of probes used to get ftrace overhead
-#define OVERHEAD_NPROBES 5
+#define OVERHEAD_NPROBES 10
 
 // Discard latencies above this threshold as outliers
 #define MAX_RAW_LATENCY 1000
@@ -363,6 +363,7 @@ int main(int argc, char *argv[])
           // Discard received packet as outlier
           fprintf(stdout, "discarded recv: %lu\n",
                   finish_recv_time.tv_sec * 1000000 + finish_recv_time.tv_usec);
+	  ping_on_wire = 0;
         }
         expect_recv = 0;
 
