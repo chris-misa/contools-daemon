@@ -60,13 +60,13 @@ cat_from(const char *file, char *data, size_t len)
 // Get an open file pointer to the trace_pipe
 // and set things up in the tracing filesystem
 // If anything goes wrong, returns NULL and resets things
-FILE *
+trace_pipe_t
 get_trace_pipe(const char *debug_fs_path,
                const char *target_events,
       	       const char *pid,
       	       const char *trace_clock)
 {
-  FILE *tp = NULL;
+  trace_pipe_t tp = NULL;
   if (chdir(debug_fs_path)) {
     fprintf(stderr, "Failed to get into tracing file path.\n");
     return NULL;
@@ -103,7 +103,7 @@ get_trace_pipe(const char *debug_fs_path,
 
 // Closes the pipe and turns things off in tracing filesystem
 void
-release_trace_pipe(FILE *tp, const char *debug_fs_path)
+release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path)
 {
   if (tp) {
     fclose(tp);
@@ -115,6 +115,19 @@ release_trace_pipe(FILE *tp, const char *debug_fs_path)
   echo_to("tracing_on", "0");
   echo_to("set_event_pid", "");
   echo_to("set_event", "");
+}
+
+
+// Reads a line / events from the given trace pipe into dest
+// Up to len characters, returns the number of character read
+int
+read_trace_pipe(char *dest, size_t len, trace_pipe_t tp)
+{
+  if (fgets(dest, len, tp) != NULL) {
+    return strlen(dest);
+  } else {
+    return 0;
+  }
 }
 
 // Skip space characters

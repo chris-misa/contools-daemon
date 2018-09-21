@@ -210,7 +210,7 @@ void print_timestamp(void)
 
 int main(int argc, char *argv[])
 {
-  FILE *tp = NULL;
+  trace_pipe_t tp;
   int nbytes = 0;
 
   char buf[TRACE_BUFFER_SIZE];
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
   fprintf(stdout, "Listening for events. . . will report in usec\n");
   while (running) {
     // Read the next line from the trace pipe
-    if (fgets(buf, TRACE_BUFFER_SIZE, tp) != NULL && running) {
+    if (read_trace_pipe((char *)buf, TRACE_BUFFER_SIZE, tp) > 0 && running) {
 
       // If there's data, parse it
       trace_event_parse_str(buf, &evt);
