@@ -1,9 +1,12 @@
-all: latency libftrace.o tests
+all: latency parse_stream libftrace.o tests
 
 tests: ftrace_dump test_ftrace_overhead
 
 latency: latency.c libftrace.h libftrace.o
 	gcc -O2 -o latency latency.c libftrace.o -lpthread
+
+parse_stream: parse_stream.c libftrace.h libftrace.o
+	gcc -O2 -o parse_stream parse_stream.c libftrace.o -pthread
 
 libftrace.o: libftrace.h libftrace.c
 	gcc -O2 -c -o libftrace.o libftrace.c -lpthread

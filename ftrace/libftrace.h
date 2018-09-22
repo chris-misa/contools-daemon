@@ -44,6 +44,10 @@ struct trace_event {
 // all strings in the trace_event struct still point to the original buffer.
 void trace_event_parse_str(char *str, struct trace_event *evt);
 
+// Same as trace_event_parse_str except modified to handle format of
+// trace-cmd report which is slightly different than the trace pipe
+void trace_event_parse_report(char *str, struct trace_event *evt);
+
 // Print the given event to stdout for debuging
 void trace_event_print(struct trace_event *evt);
 

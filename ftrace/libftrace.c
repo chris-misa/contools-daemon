@@ -241,6 +241,33 @@ trace_event_parse_str(char *str, struct trace_event *evt)
   parse_field(&str, "skbaddr", &evt->skbaddr, &evt->skbaddr_len); // skb address
 }
 
+// Parse event modified to take result of trace-cmd report
+void
+trace_event_parse_report(char *str, struct trace_event *evt)
+{
+  evt->func_name = NULL;
+  evt->func_name_len = 0;
+  evt->dev = NULL;
+  evt->dev_len = 0;
+  evt->skbaddr = NULL;
+  evt->skbaddr_len = 0;
+
+  parse_skip_whitespace(&str);
+  parse_skip_nonwhitespace(&str);           // Command and pid
+  parse_skip_whitespace(&str);
+  parse_skip_nonwhitespace(&str);           // CPU
+  parse_skip_whitespace(&str);
+  parse_timestamp(&str, &evt->ts);          // Time stamp
+  parse_skip_whitespace(&str);
+  parse_function_name(&str,
+                      &evt->func_name,
+                      &evt->func_name_len);    // Event type
+
+  // Assume events are from net:* subsystem and have these fields
+  parse_field(&str, "dev", &evt->dev, &evt->dev_len); // Device
+  parse_field(&str, "skbaddr", &evt->skbaddr, &evt->skbaddr_len); // skb address
+}
+
 // Print the given event to stdout for debuging
 void
 trace_event_print(struct trace_event *evt)
