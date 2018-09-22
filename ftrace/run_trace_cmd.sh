@@ -31,6 +31,7 @@ PAUSE_CMD="sleep 5"
 PING_PAUSE_CMD="sleep 10"
 
 MONITOR_CMD="trace-cmd record -e net:net_dev_xmit -e net:netif_receive_skb -C global --date"
+PARSE_STREAM_CMD="$(pwd)/parse_stream $(pwd)/latency.conf"
 
 DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
@@ -122,9 +123,10 @@ do
   $PAUSE_CMD
 
   trace-cmd report container_monitored_${TARGET_IPV4}_${arg}.dat \
-    > container_monitored_${TARGET_IPV4}_${arg}.trace
+    | $PARSE_STREAM_CMD \
+    > container_monitored_${TARGET_IPV4}_${arg}.latency
 
-  echo "  dumped trace to text"
+  echo "  converted trace to latency"
 
   if [ $arg != "nop" ]
   then
