@@ -9,7 +9,7 @@
 #ifndef LIBFTRACE_H
 #define LIBFTRACE_H
 
-typedef FILE * trace_pipe_t;
+typedef int trace_pipe_t;
 
 int echo_to(const char *file, const char *data);
 
@@ -21,12 +21,16 @@ trace_pipe_t get_trace_pipe(const char *debug_fs_path,
 		                        const char *pid,
 		                        const char *trace_clock);
 
+// Returns nonzero if the trace pipe was opened sucessfuly
+int is_opened_trace_pipe(trace_pipe_t tp);
+
 // Closes the pipe and turns things off in tracing filesystem
 void release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path);
 
 // Reads a line / events from the given trace pipe into dest
 // Up to len characters, returns the number of character read
 int read_trace_pipe(char *dest, size_t len, trace_pipe_t tp);
+
 
 // Structure used to hold timestamp and pointers into a parsed buffer
 struct trace_event {

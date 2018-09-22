@@ -14,6 +14,9 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/select.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/fcntl.h>
 #include <pthread.h>
 #include <signal.h>
 
@@ -66,15 +69,15 @@ get_trace_pipe(const char *debug_fs_path,
       	       const char *pid,
       	       const char *trace_clock)
 {
-  trace_pipe_t tp = NULL;
+  trace_pipe_t tp;
   if (chdir(debug_fs_path)) {
     fprintf(stderr, "Failed to get into tracing file path.\n");
-    return NULL;
+    return -1;
   }
   // If the first write fails, we probably don't have permissions so bail
   if (!echo_to("trace", "")) {
     fprintf(stderr, "Failed to write in tracing fs.\n");
-    return NULL;
+    return -1;
   }
   echo_to("trace", "");
   echo_to("current_tracer", "nop");
@@ -90,23 +93,29 @@ get_trace_pipe(const char *debug_fs_path,
 
   echo_to("tracing_on", "1");
 
-  tp = fopen("trace_pipe","r");
+  tp = open("trace_pipe", O_RDONLY);
   
-  if (!tp) {
+  if (tp == -1) {
     fprintf(stderr, "Failed to open trace pipe.\n");
-    release_trace_pipe(NULL, debug_fs_path);
-    return NULL;
+    release_trace_pipe(0, debug_fs_path);
+    return -1;
   }
   
   return tp;
+}
+
+// Returns nonzero if the trace pipe was opened sucessfuly
+int is_opened_trace_pipe(trace_pipe_t tp)
+{
+  return tp != -1;
 }
 
 // Closes the pipe and turns things off in tracing filesystem
 void
 release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path)
 {
-  if (tp) {
-    fclose(tp);
+  if (is_opened_trace_pipe(tp)) {
+    close(tp);
   }
   if (chdir(debug_fs_path)) {
     fprintf(stderr, "Failed to get into tracing file path.\n");
@@ -123,11 +132,9 @@ release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path)
 int
 read_trace_pipe(char *dest, size_t len, trace_pipe_t tp)
 {
-  if (fgets(dest, len, tp) != NULL) {
-    return strlen(dest);
-  } else {
-    return 0;
-  }
+  size_t res = read(tp, dest, len - 1);
+  dest[res] = '\0';
+  return res;
 }
 
 // Skip space characters
@@ -393,7 +400,7 @@ probe_loopback(int nprobes,
 // between the `send <n>` and `recv <n>` markers inserted by ping loop
 
 struct count_ftrace_events_args {
-  FILE **tp_p;
+  trace_pipe_t *tp_p;
   int nprobes;
 };
 
@@ -404,7 +411,7 @@ count_ftrace_events(void *arg_p)
 {
   struct count_ftrace_events_args *args = NULL;
   char buf[TRACE_BUFFER_SIZE];
-  FILE *tp = NULL;
+  trace_pipe_t tp;
   int curProbe = -1;
   int newProbe = -1;
   int event_counter = 0;
@@ -418,9 +425,9 @@ count_ftrace_events(void *arg_p)
   char *str_p;
 
   args = (struct count_ftrace_events_args *)arg_p;
-  tp = *((FILE **)args->tp_p);
+  tp = *args->tp_p;
 
-  if (!tp) {
+  if (!is_opened_trace_pipe(tp)) {
     fprintf(stderr, "count_ftrace_events trace pipe arg is NULL\n");
     return NULL;
   }
@@ -432,7 +439,7 @@ count_ftrace_events(void *arg_p)
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   while (1) {
-    if (fgets(buf, TRACE_BUFFER_SIZE, tp) != NULL) {
+    if (read_trace_pipe(buf, TRACE_BUFFER_SIZE, tp) > 0) {
 #ifdef DEBUG_TRACE
       fprintf(stderr, "FTRACE: %s", buf);
 #endif
@@ -478,7 +485,7 @@ get_event_overhead(const char *debug_fs_path,
   long unsigned int untraced_mean_rtt;
   long unsigned int traced_mean_rtt;
 
-  FILE *tp;
+  trace_pipe_t tp;
 
   pthread_t event_count_thread;
   struct count_ftrace_events_args count_thread_args;
@@ -516,7 +523,7 @@ get_event_overhead(const char *debug_fs_path,
   // Get traced RTT
   probe_loopback(nprobes,
                  &traced_mean_rtt,
-                 debug_fs_path);
+                 (char *)debug_fs_path);
 
 #ifdef DEBUG
   fprintf(stderr, "Got traced rtt: %lu usec\n",

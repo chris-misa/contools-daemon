@@ -294,7 +294,7 @@ int main(int argc, char *argv[])
 
   // Get the trace pipe
   tp = get_trace_pipe(TRACING_FS_PATH, ftrace_set_events, NULL, TRACE_CLOCK);
-  if (!tp) {
+  if (!is_opened_trace_pipe(tp)) {
     fprintf(stderr, "Failed to open trace pipe\n");
     return 1;
   }
