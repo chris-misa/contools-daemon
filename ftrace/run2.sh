@@ -27,18 +27,18 @@ PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-# PING_PAUSE_CMD="sleep 500"
-PING_PAUSE_CMD="sleep 10"
+PING_PAUSE_CMD="sleep 500"
+# PING_PAUSE_CMD="sleep 60"
 
 MONITOR_CMD="$(pwd)/latency $(pwd)/latency.conf"
 
 DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
 
-#declare -a IPERF_ARGS=("1M" "3M" "10M" "32M" "100M" "316M" "1G" "3G" "10G")
+# declare -a IPERF_ARGS=("1M" "3M" "10M" "32M" "100M" "316M" "1G" "3G" "10G")
 # declare -a IPERF_ARGS=("nop" "500K" "1M" "100M" "1G" "10G")
-# declare -a IPERF_ARGS=("nop" "500K" "1M" "100M" "1G" "10G")
-declare -a IPERF_ARGS=("nop")
+declare -a IPERF_ARGS=("nop" "500K" "1M" "100M" "1G" "10G")
+# declare -a IPERF_ARGS=("nop")
 
 mkdir $DATE_TAG
 cd $DATE_TAG
