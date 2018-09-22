@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
   fprintf(stdout, "Listening for events. . . will report in usec\n");
   while (running) {
     // Read the next line from the trace pipe
-    if (read_trace_pipe((char *)buf, TRACE_BUFFER_SIZE, tp) > 0 && running) {
+    if (read_trace_pipe(buf, TRACE_BUFFER_SIZE, tp) > 0 && running) {
 
       // If there's data, parse it
       trace_event_parse_str(buf, &evt);

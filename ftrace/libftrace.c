@@ -119,12 +119,12 @@ release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path)
 
 
 // Reads a line / events from the given trace pipe into dest
-// Up to len characters, returns the number of character read
-int
+// Up to len characters, returns nonzero on success
+inline int
 read_trace_pipe(char *dest, size_t len, trace_pipe_t tp)
 {
   if (fgets(dest, len, tp) != NULL) {
-    return strlen(dest);
+    return 1;
   } else {
     return 0;
   }
@@ -393,7 +393,7 @@ probe_loopback(int nprobes,
 // between the `send <n>` and `recv <n>` markers inserted by ping loop
 
 struct count_ftrace_events_args {
-  FILE **tp_p;
+  trace_pipe_t *tp_p;
   int nprobes;
 };
 
@@ -404,7 +404,7 @@ count_ftrace_events(void *arg_p)
 {
   struct count_ftrace_events_args *args = NULL;
   char buf[TRACE_BUFFER_SIZE];
-  FILE *tp = NULL;
+  trace_pipe_t tp = NULL;
   int curProbe = -1;
   int newProbe = -1;
   int event_counter = 0;
@@ -418,7 +418,7 @@ count_ftrace_events(void *arg_p)
   char *str_p;
 
   args = (struct count_ftrace_events_args *)arg_p;
-  tp = *((FILE **)args->tp_p);
+  tp = *(args->tp_p);
 
   if (!tp) {
     fprintf(stderr, "count_ftrace_events trace pipe arg is NULL\n");
@@ -478,7 +478,7 @@ get_event_overhead(const char *debug_fs_path,
   long unsigned int untraced_mean_rtt;
   long unsigned int traced_mean_rtt;
 
-  FILE *tp;
+  trace_pipe_t tp;
 
   pthread_t event_count_thread;
   struct count_ftrace_events_args count_thread_args;
