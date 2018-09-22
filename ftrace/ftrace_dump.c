@@ -14,7 +14,7 @@
 #include "../time_common.h"
 
 #define TRACING_FS_PATH "/sys/kernel/debug/tracing"
-#define TRACE_BUFFER_SIZE 0x1000
+#define TRACE_BUFFER_SIZE 2048
 
 static volatile int running = 1;
 
@@ -49,8 +49,10 @@ int main(int argc, char *argv[])
   }
 
   while (running) {
-    if (read_trace_pipe(buf, TRACE_BUFFER_SIZE, tp) > 0) {
-      fprintf(stdout, "%s", buf);
+    nbytes = read_trace_pipe(buf, TRACE_BUFFER_SIZE, tp);
+    if (nbytes > 0) {
+      buf[nbytes] = '\n';
+      fprintf(stdout, "Got: %s\n", buf);
     }
   }
 

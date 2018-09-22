@@ -28,7 +28,14 @@
 #define TRACE_BUFFER_SIZE 512
 #define SAVE_BUFFER 512
 
+// Must be longer than the longest expected trace line
+#define READ_PIPE_BUFFER_SIZE 1024
+
 // #define DEBUG
+
+char *read_pipe_buffer;
+char *leftovers_head;
+char *leftovers_tail;
 
 // Simply write into the given file and close
 // Used for controlling ftrace via tracing filesystem
@@ -100,6 +107,15 @@ get_trace_pipe(const char *debug_fs_path,
     release_trace_pipe(0, debug_fs_path);
     return -1;
   }
+
+  // Set up out internal read buffer
+  read_pipe_buffer = (char *)malloc(READ_PIPE_BUFFER_SIZE);
+  if (!read_pipe_buffer) {
+    fprintf(stderr, "Not enough memory!\n");
+    release_trace_pipe(0, debug_fs_path);
+    return -1;
+  }
+  leftovers_head = leftovers_tail = read_pipe_buffer;
   
   return tp;
 }
@@ -117,6 +133,9 @@ release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path)
   if (is_opened_trace_pipe(tp)) {
     close(tp);
   }
+  if (read_pipe_buffer) {
+    free(read_pipe_buffer);
+  }
   if (chdir(debug_fs_path)) {
     fprintf(stderr, "Failed to get into tracing file path.\n");
     return;
@@ -129,12 +148,86 @@ release_trace_pipe(trace_pipe_t tp, const char *debug_fs_path)
 
 // Reads a line / events from the given trace pipe into dest
 // Up to len characters, returns the number of character read
+// len should be less than READ_PIPE_BUFFER
 int
 read_trace_pipe(char *dest, size_t len, trace_pipe_t tp)
 {
-  size_t res = read(tp, dest, len - 1);
-  dest[res] = '\0';
-  return res;
+  int buf_len;
+  size_t res;
+
+  char *buf_p;
+  char *dest_head;
+  int leftover_len;
+
+  // Check leftovers for new line
+  for (buf_p = leftovers_head; buf_p != leftovers_tail; buf_p++) {
+
+    // If new line found, copy this into buffer and return
+    if (*buf_p == '\n') {
+      
+      buf_len = buf_p - leftovers_head;
+      if (buf_len > len) {
+        fprintf(stderr, "read_trace_pipe: given len not big enough\n");
+        return 0;
+      }
+      memcpy(dest, leftovers_head, buf_len);
+      leftovers_head = buf_p + 1;
+      return buf_len;
+    }
+  }
+       
+  // Read pipe
+  res = read(tp, read_pipe_buffer, READ_PIPE_BUFFER_SIZE - 1);
+  if (res < 0) {
+    fprintf(stderr, "read_trace_pipe: read error!\n");
+    // We didn't modify any globals so state should be ok for next call
+    return 0;
+  }
+
+  // If read nothing, return now before changing state
+  if (res == 0) {
+    return 0;
+  }
+
+  // Copy leftovers into dest and update dest_head
+  if (leftovers_tail != leftovers_head) {
+    leftover_len = leftovers_tail - leftovers_head;
+    if (leftover_len > len) {
+      fprintf(stderr, "read_trace_pipe: given len not big enough\n");
+      return 0;
+    }
+    memcpy(dest, leftovers_head, leftover_len);
+    dest_head = dest + leftover_len;
+  } else {
+    leftover_len = 0;
+    dest_head = dest;
+  }
+
+  
+  // Set a marker to the end of what's valid in the buffer
+  leftovers_tail = read_pipe_buffer + res;
+  leftovers_head = read_pipe_buffer;
+
+  // Find newline in read data, copy into dest
+  for (buf_p = read_pipe_buffer; buf_p != leftovers_tail; buf_p++) {
+
+    if (*buf_p == '\n') {
+      buf_len = buf_p - read_pipe_buffer;
+      if (leftover_len + buf_len > len) {
+        fprintf(stderr, "read_trace_pipe: given len not big enough\n");
+        return 0;
+      }
+      memcpy(dest_head, read_pipe_buffer, buf_len);
+      leftovers_head = buf_p + 1;
+      return leftover_len + buf_len;
+    }    
+  }
+  
+  // If no newline read, buffer is too small so fail and report it
+  // Not we reset things but data may have been lost!
+  fprintf(stderr, "read_trace_pipe buffer overflow!\n");
+  leftovers_head = leftovers_tail = read_pipe_buffer;
+  return 0;
 }
 
 // Skip space characters

@@ -284,10 +284,12 @@ int main(int argc, char *argv[])
 
   // Get ftrace event overhead
   fprintf(stdout, "Getting ftrace event overhead. . .\n");
-  usec_per_event = get_event_overhead(TRACING_FS_PATH,
-                                      ftrace_set_events,
-                                      TRACE_CLOCK,
-                                      OVERHEAD_NPROBES);
+  // usec_per_event = get_event_overhead(TRACING_FS_PATH,
+  //                                     ftrace_set_events,
+  //                                     TRACE_CLOCK,
+  //                                     OVERHEAD_NPROBES);
+  fprintf(stdout, "Squashed overhead routine!\n");
+  usec_per_event = 0;
   fprintf(stdout, "Estimated usec per event: %f\n", usec_per_event);
 
   echo_to(synced_indicator, "1");
