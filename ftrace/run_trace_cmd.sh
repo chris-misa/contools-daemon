@@ -61,6 +61,7 @@ $PAUSE_CMD
 
 for arg in ${IPERF_ARGS[@]}
 do
+  echo $arg >> file_list
   # Start iperf
   if [ $arg != "nop" ]
   then
