@@ -34,10 +34,16 @@ int main(int argc, char *argv[])
   FILE *tp = NULL;
   int nbytes = 0;
   // This must match with events used in libftrace.h
-  const char *events = "net:*";
+  const char *events = NULL;
   struct trace_event *evt;
   struct timeval start_send_time;
   struct timeval finish_send_time;
+
+  if (argc == 2) {
+    events = argv[1];
+  } else {
+    events = "net:*";
+  }
 
   signal(SIGINT, do_exit);
 

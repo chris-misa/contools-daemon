@@ -194,6 +194,7 @@ find_field_name:
 }
 
 // Get the function name assuming it is terminated by a colon
+// or an open paren
 void
 parse_function_name(char **str, char **result, int *result_len)
 {
@@ -209,6 +210,9 @@ parse_function_name(char **str, char **result, int *result_len)
   *result_len = len;
 
   (*str) += len;
+  if (**str != '\0') {
+    (*str)++;
+  }
 }
 
 // Parse a string into a newly allocated trace_event struct
@@ -241,19 +245,36 @@ trace_event_parse_str(char *str, struct trace_event *evt)
   parse_field(&str, "skbaddr", &evt->skbaddr, &evt->skbaddr_len); // skb address
 }
 
+// Parse the pid section stripping out command name
+void
+parse_pid(char **str, int *pid) {
+  char *p;
+  while (**str != '-' && **str != '\0') {
+    (*str)++;
+  }
+  p = (*str) + 1;
+  *pid = strtol(p, str, 10);
+}
+
+
 // Parse event modified to take result of trace-cmd report
 void
 trace_event_parse_report(char *str, struct trace_event *evt)
 {
+  char *p;
+  int p_len;
+
   evt->func_name = NULL;
   evt->func_name_len = 0;
   evt->dev = NULL;
   evt->dev_len = 0;
   evt->skbaddr = NULL;
   evt->skbaddr_len = 0;
+  evt->len = -1;
+  evt->pid = -1;
 
   parse_skip_whitespace(&str);
-  parse_skip_nonwhitespace(&str);           // Command and pid
+  parse_pid(&str, &evt->pid);               // Command and pid
   parse_skip_whitespace(&str);
   parse_skip_nonwhitespace(&str);           // CPU
   parse_skip_whitespace(&str);
@@ -263,9 +284,24 @@ trace_event_parse_report(char *str, struct trace_event *evt)
                       &evt->func_name,
                       &evt->func_name_len);    // Event type
 
-  // Assume events are from net:* subsystem and have these fields
-  parse_field(&str, "dev", &evt->dev, &evt->dev_len); // Device
-  parse_field(&str, "skbaddr", &evt->skbaddr, &evt->skbaddr_len); // skb address
+  // handle net subsystem events
+  if (!strncmp(evt->func_name, "net", 3)
+      || !strncmp(evt->func_name, "napi", 4)) {
+    parse_field(&str, "dev", &evt->dev, &evt->dev_len); // Device
+    parse_field(&str, "skbaddr", &evt->skbaddr, &evt->skbaddr_len); // skb address
+    parse_field(&str, "len", &p, &p_len); // len
+    evt->len = strtol(p, NULL, 10);
+  }
+
+  // handle exit system call events (return value -> len)
+  else if (!strncmp(evt->func_name, "sys_exit", 8)) {
+    str++;
+    evt->len = strtol(str, NULL, 16);
+  }
+
+  // Note that we don't parse syscall entries because for these
+  // we only need to care about the pid for corelation. . .
+    
 }
 
 // Print the given event to stdout for debuging

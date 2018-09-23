@@ -37,6 +37,8 @@ struct trace_event {
   int dev_len;
   char *skbaddr;
   int skbaddr_len;
+  int len;
+  int pid;
 };
 
 // Parses the str into a trace_event struct
