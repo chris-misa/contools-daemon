@@ -202,12 +202,10 @@ print_stats(long long unsigned int send_sum,
  * Print timestamp
  * (Lifted from iputils/ping_common.c)
  */
-void print_timestamp(void)
+void print_timestamp(struct timeval *tv)
 {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
   printf("[%lu.%06lu] ",
-         (unsigned long)tv.tv_sec, (unsigned long)tv.tv_usec);
+         (unsigned long)tv->tv_sec, (unsigned long)tv->tv_usec);
 }
 
 int main(int argc, char *argv[])
@@ -323,7 +321,7 @@ int main(int argc, char *argv[])
                   recv_events_overhead,
                   recv_adj_latency);
 #endif
-          print_timestamp();
+          print_timestamp(&evt.ts);
           fprintf(stdout, "rtt raw_latency: %llu, events_overhead: %f, adj_latency: %f\n",
                   recv_raw_usec + send_raw_usec,
                   recv_events_overhead + send_events_overhead,
