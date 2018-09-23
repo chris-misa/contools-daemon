@@ -27,7 +27,7 @@ PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-# PING_PAUSE_CMD="sleep 500"
+PING_PAUSE_CMD="sleep 500"
 # PING_PAUSE_CMD="sleep 10"
 
 MONITOR_CMD="trace-cmd record -e net:net_dev_xmit -e net:netif_receive_skb -C global --date"
@@ -37,9 +37,9 @@ DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
 
 # declare -a IPERF_ARGS=("1M" "3M" "10M" "32M" "100M" "316M" "1G" "3G" "10G")
-# declare -a IPERF_ARGS=("nop" "1M" "10M" "100M" "1G" "10G")
+declare -a IPERF_ARGS=("nop" "1M" "10M" "100M" "1G" "10G")
 # declare -a IPERF_ARGS=("nop" "500K" "1M" "100M" "1G" "10G")
-declare -a IPERF_ARGS=("nop" "3M")
+# declare -a IPERF_ARGS=("nop" "3M")
 
 mkdir $DATE_TAG
 cd $DATE_TAG
@@ -105,16 +105,25 @@ do
     $CONTAINER_PING_CMD $PING_ARGS $TARGET_IPV4 \
     > container_monitored_${TARGET_IPV4}_${arg}.ping &
   echo "  container pinging. . ."
-  
+
   $PAUSE_CMD
   
   PING_PID=`ps -e | grep ping | sed -E 's/ *([0-9]+) .*/\1/'`
   echo "  got container ping pid $PING_PID"
+
+
+  # Run ping in background
+  $NATIVE_PING_CMD $PING_ARGS $TARGET_IPV4 \
+    > native_monitored_${TARGET_IPV4}_${arg}.ping &
+  NAT_PING_PID=$!
+  echo "  native pinging. . . (pid $NAT_PING_PID)"
+  
   
   $PING_PAUSE_CMD
   
   kill -INT $PING_PID
-  echo "  killed ping"
+  kill -INT $NAT_PING_PID
+  echo "  killed pings"
   
   $PAUSE_CMD
   
