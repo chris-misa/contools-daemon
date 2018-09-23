@@ -29,8 +29,8 @@ PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-PING_PAUSE_CMD="sleep 500"
-# PING_PAUSE_CMD="sleep 10"
+# PING_PAUSE_CMD="sleep 500"
+PING_PAUSE_CMD="sleep 10"
 
 MONITOR_CMD="trace-cmd record -e net:net_dev_xmit -e net:netif_receive_skb -e syscalls:sys_enter_sendto -e syscalls:sys_exit_recvmsg -C global --date"
 PARSE_STREAM_CMD="$(pwd)/parse_stream_syscalls"
@@ -39,9 +39,9 @@ DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
 
 # declare -a IPERF_ARGS=("1M" "3M" "10M" "32M" "100M" "316M" "1G" "3G" "10G")
-declare -a IPERF_ARGS=("nop" "1M" "10M" "100M" "1G" "10G")
+# declare -a IPERF_ARGS=("nop" "1M" "10M" "100M" "1G" "10G")
 # declare -a IPERF_ARGS=("nop" "500K" "1M" "100M" "1G" "10G")
-# declare -a IPERF_ARGS=("nop")
+declare -a IPERF_ARGS=("nop")
 
 mkdir $DATE_TAG
 cd $DATE_TAG
@@ -92,6 +92,28 @@ do
   
   $PAUSE_CMD
   
+  #
+  # Container pings for control
+  #
+  echo $B Container control $B
+  # Run ping in container
+  echo "  pinging. . ."
+  docker exec $PING_CONTAINER_NAME \
+    $CONTAINER_PING_CMD $PING_ARGS $TARGET_IPV4 \
+    > container_control_${TARGET_IPV4}_${arg}.ping &
+
+  $PAUSE_CMD
+  
+  PING_PID=`ps -e | grep ping | sed -E 's/ *([0-9]+) .*/\1/'`
+  echo "  got ping pid: $PING_PID"
+  
+  $PING_PAUSE_CMD
+  
+  kill -INT $PING_PID
+  echo "  killed ping"
+  
+  $PAUSE_CMD
+
   #
   # Container pings with monitoring
   #
