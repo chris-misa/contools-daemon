@@ -21,8 +21,8 @@ TARGET_IPV4="10.10.1.2"
 # Argument sequence is an associative array
 # between file suffixes and argument strings
 declare -A ARG_SEQ=(
-  ["i0.5s120_0.ping"]="-c 10 -i 0.5 -s 120"
-  ["i1.0s120_0.ping"]="-c 10 -i 1.0 -s 120"
+  ["i0.5s120_0"]="-c 10 -i 0.5 -s 120"
+  ["i1.0s120_0"]="-c 10 -i 1.0 -s 120"
 )
 
 NATIVE_PING_CMD="${HOME}/contools-daemon/iputils/ping"
@@ -57,7 +57,9 @@ $PAUSE_CMD
 for arg in ${!ARG_SEQ[@]}
 do
   echo $arg >> file_list
-  PING_ARGS=${ARG_SEQ[$i]}
+  PING_ARGS=${ARG_SEQ[${arg}]}
+
+  echo "Running: ping $PING_ARGS"
   #
   # Native pings for control
   #
