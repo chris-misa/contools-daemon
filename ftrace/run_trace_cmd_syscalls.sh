@@ -13,7 +13,7 @@ do
   # Start iperf
   if [ $arg != "nop" ]
   then
-    iperf -c $TARGET_IPV4 -d -i 100 -b $arg -t 0 \
+    iperf -c $IPERF_TARGET_IPV4 -d -i 100 -b $arg -t 0 \
       > ${arg}.iperf &
     IPERF_PID=$!
   fi

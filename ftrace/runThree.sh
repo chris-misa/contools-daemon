@@ -19,7 +19,9 @@ B="----------------"
 
 TARGET_IPV4="10.10.1.2"
 
-PING_ARGS="-D -i 1.0 -s 56"
+IPERF_TARGET_IPV4="127.0.0.1"
+
+PING_ARGS="-D -i 0.5 -s 56"
 
 NATIVE_PING_CMD="${HOME}/contools-daemon/iputils/ping"
 CONTAINER_PING_CMD="/iputils/ping"
@@ -29,16 +31,16 @@ PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-# PING_PAUSE_CMD="sleep 1000"
-PING_PAUSE_CMD="sleep 5"
+PING_PAUSE_CMD="sleep 500"
+# PING_PAUSE_CMD="sleep 5"
 
 DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
 
 # declare -a IPERF_ARGS=("1M" "3M" "10M" "32M" "100M" "316M" "1G" "3G" "10G")
-# declare -a IPERF_ARGS=("nop" "1M" "10M" "100M" "1G" "10G")
+declare -a IPERF_ARGS=("nop" "1M" "10M" "100M" "1G" "10G")
 # declare -a IPERF_ARGS=("nop" "500K" "1M" "100M" "1G" "10G")
-declare -a IPERF_ARGS=("nop")
+# declare -a IPERF_ARGS=("nop")
 
 OLD_PWD=$(pwd) # used in the scripts referenced below to get at functions in this dir
 
