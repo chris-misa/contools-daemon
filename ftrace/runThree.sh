@@ -19,7 +19,7 @@ B="----------------"
 
 TARGET_IPV4="10.10.1.2"
 
-IPERF_TARGET_IPV4="127.0.0.1"
+IPERF_TARGET_IPV4="10.10.1.2"
 
 PING_ARGS="-D -i 0.5 -s 56"
 
@@ -31,8 +31,8 @@ PING_CONTAINER_NAME="ping-container"
 
 PAUSE_CMD="sleep 5"
 
-PING_PAUSE_CMD="sleep 500"
-# PING_PAUSE_CMD="sleep 5"
+# PING_PAUSE_CMD="sleep 500"
+PING_PAUSE_CMD="sleep 5"
 
 DATE_TAG=`date +%Y%m%d%H%M%S`
 META_DATA="Metadata"
